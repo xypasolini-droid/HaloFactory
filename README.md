@@ -40,9 +40,9 @@ HaloFactory 让任务跟着人走、问题留在现场解决，减少信息不�
 
 ## 后端 Web 展示原型
 
-[`backend-web/smart-factory-mes-wireframe.html`](backend-web/smart-factory-mes-wireframe.html) 是 HaloFactory 后端管理界面的单文件静态交互原型，展示从订单图纸、AI 拆解与任务派发，到车间进度、成套风险、质检及包装入库的生产协同流程。
+[`backend-web/mes-graphite-dark.html`](backend-web/mes-graphite-dark.html) 是推荐的深色工业风展示入口；[`backend-web/smart-factory-mes-wireframe.html`](backend-web/smart-factory-mes-wireframe.html) 保留为初始浅色线框。两者均展示从订单图纸、AI 拆解与任务派发，到车间进度、成套风险、质检及包装入库的生产协同流程。
 
-该原型的 CSS 和 JavaScript 均已内联，不依赖外部服务；下载或克隆仓库后，可直接使用浏览器打开。页面中的订单、人员、产量和生产进度均为演示数据，不代表真实生产记录，也不包含实际后端接口或数据持久化功能。
+两个原型的 CSS 和 JavaScript 均已内联，下载或克隆仓库后可直接使用浏览器打开。深色版会加载 Google Fonts，并使用 `localStorage` 记住当前导航页；浅色版无外部依赖。页面中的订单、人员、产量和生产进度均为演示数据，不代表真实生产记录，也不包含实际后端接口或业务数据持久化功能。
 
 ## 来源归档
 

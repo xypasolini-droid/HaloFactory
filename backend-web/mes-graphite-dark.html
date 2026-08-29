@@ -1,0 +1,1405 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>生产协同 MES · 石墨精工</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: oklch(0.18 0.012 250);
+      --surface: oklch(0.235 0.014 250);
+      --surface-2: oklch(0.27 0.015 250);
+      --surface-hi: oklch(0.30 0.016 250);
+      --fg: oklch(0.93 0.006 250);
+      --muted: oklch(0.66 0.012 250);
+      --faint: oklch(0.52 0.012 250);
+      --border: oklch(1 0 0 / 0.09);
+      --border-strong: oklch(1 0 0 / 0.16);
+      --accent: oklch(0.80 0.14 78);
+      --accent-dim: oklch(0.80 0.14 78 / 0.14);
+      --accent-fg: oklch(0.22 0.02 78);
+
+      --success: oklch(0.74 0.14 150);
+      --success-bg: oklch(0.74 0.14 150 / 0.13);
+      --warn: oklch(0.80 0.13 78);
+      --warn-bg: oklch(0.80 0.13 78 / 0.13);
+      --danger: oklch(0.70 0.17 25);
+      --danger-bg: oklch(0.70 0.17 25 / 0.14);
+      --info: oklch(0.72 0.11 235);
+      --info-bg: oklch(0.72 0.11 235 / 0.14);
+
+      --font-display: "Space Grotesk", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-body: "IBM Plex Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+
+      --radius: 8px;
+      --shadow: 0 1px 0 oklch(1 0 0 / 0.04) inset, 0 8px 24px oklch(0.12 0.01 250 / 0.5);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+      background-image:
+        radial-gradient(1200px 600px at 82% -10%, oklch(0.80 0.14 78 / 0.05), transparent 60%);
+      background-attachment: fixed;
+    }
+
+    button, input, select { font: inherit; color: inherit; }
+
+    ::selection { background: var(--accent-dim); }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 244px minmax(0, 1fr);
+    }
+
+    /* ---------- Sidebar ---------- */
+    .sidebar {
+      background: linear-gradient(180deg, oklch(0.21 0.013 250), oklch(0.175 0.012 250));
+      border-right: 1px solid var(--border);
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .brand {
+      padding: 4px 8px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .brand-mark {
+      width: 34px; height: 34px;
+      flex: none;
+      border-radius: 9px;
+      background: linear-gradient(145deg, var(--accent), oklch(0.68 0.13 62));
+      display: grid; place-items: center;
+      box-shadow: 0 2px 10px oklch(0.80 0.14 78 / 0.35);
+    }
+    .brand-mark svg { width: 19px; height: 19px; color: var(--accent-fg); }
+
+    .brand-title {
+      font-family: var(--font-display);
+      color: var(--fg);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      line-height: 1.25;
+    }
+    .brand-subtitle {
+      color: var(--muted);
+      font-size: 11.5px;
+      letter-spacing: 0.02em;
+      margin-top: 2px;
+    }
+
+    .nav-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--faint);
+      padding: 0 8px;
+    }
+
+    .nav { display: flex; flex-direction: column; gap: 3px; }
+
+    .nav button {
+      position: relative;
+      width: 100%;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      padding: 10px 12px 10px 14px;
+      display: grid;
+      grid-template-columns: 20px 1fr auto;
+      align-items: center;
+      gap: 11px;
+      text-align: left;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background .16s ease, color .16s ease;
+    }
+    .nav button .nav-ico { width: 18px; height: 18px; display: grid; place-items: center; }
+    .nav button .nav-ico svg { width: 17px; height: 17px; }
+
+    .nav button:hover { background: oklch(1 0 0 / 0.05); color: var(--fg); }
+
+    .nav button.active {
+      background: var(--accent-dim);
+      color: var(--fg);
+    }
+    .nav button.active::before {
+      content: "";
+      position: absolute;
+      left: -14px; top: 50%;
+      transform: translateY(-50%);
+      width: 3px; height: 22px;
+      border-radius: 0 3px 3px 0;
+      background: var(--accent);
+      box-shadow: 0 0 10px oklch(0.80 0.14 78 / 0.7);
+    }
+
+    .nav .badge {
+      min-width: 22px; height: 19px;
+      padding: 0 7px;
+      border-radius: 999px;
+      background: oklch(1 0 0 / 0.08);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .nav button.active .badge {
+      background: var(--accent-dim);
+      border-color: oklch(0.80 0.14 78 / 0.3);
+      color: var(--accent);
+    }
+
+    .sidebar-foot {
+      margin-top: auto;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: oklch(1 0 0 / 0.03);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sidebar-foot .avatar {
+      width: 32px; height: 32px; flex: none;
+      border-radius: 50%;
+      background: var(--surface-hi);
+      border: 1px solid var(--border-strong);
+      display: grid; place-items: center;
+      font-family: var(--font-display);
+      font-size: 13px; font-weight: 600;
+      color: var(--accent);
+    }
+    .sidebar-foot .who { font-size: 12.5px; font-weight: 500; }
+    .sidebar-foot .role { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    /* ---------- Main ---------- */
+    .main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      overflow-x: auto;
+    }
+
+    .topbar {
+      height: 68px;
+      background: oklch(0.20 0.013 250 / 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      position: sticky; top: 0; z-index: 5;
+    }
+
+    .page-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.25;
+      letter-spacing: 0.01em;
+    }
+    .page-meta {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .toolbar {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap; justify-content: flex-end;
+    }
+
+    .btn {
+      height: 36px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--surface-2);
+      color: var(--fg);
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center; gap: 7px;
+      cursor: pointer;
+      white-space: nowrap;
+      font-weight: 500;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .btn:hover { background: var(--surface-hi); border-color: var(--border-strong); }
+    .btn svg { width: 15px; height: 15px; opacity: .85; }
+
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-fg);
+      font-weight: 600;
+    }
+    .btn.primary:hover {
+      background: oklch(0.85 0.14 78);
+      border-color: oklch(0.85 0.14 78);
+      color: var(--accent-fg);
+    }
+    .btn.ghost { background: transparent; }
+    .btn.ghost:hover { background: oklch(1 0 0 / 0.05); }
+
+    select.btn { padding-right: 30px; }
+
+    .content {
+      padding: 22px 26px 34px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* ---------- Metrics ---------- */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(140px, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 16px 14px;
+      min-height: 96px;
+      position: relative;
+      overflow: hidden;
+    }
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .metric-label .dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+    .metric-value {
+      font-family: var(--font-display);
+      font-size: 30px;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: -0.01em;
+      font-feature-settings: "tnum" 1;
+    }
+    .metric-foot {
+      margin-top: 10px;
+      color: var(--faint);
+      font-size: 11.5px;
+      font-family: var(--font-mono);
+    }
+
+    /* ---------- Panels ---------- */
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(360px, .75fr);
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      min-width: 0;
+    }
+
+    .panel-header {
+      min-height: 52px;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .panel-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 14.5px;
+      letter-spacing: 0.005em;
+    }
+    .panel-body { padding: 16px; }
+
+    .table-wrap { overflow: auto; }
+
+    .ai-draft-panel { min-height: 430px; display: flex; flex-direction: column; }
+    .ai-draft-table-wrap { flex: 1; max-height: 332px; border-bottom: 1px solid var(--border); overflow: auto; }
+    .ai-draft-table { min-width: 1120px; }
+    .ai-draft-table thead th { position: sticky; top: 0; z-index: 1; }
+
+    .dispatch-list-panel { display: flex; flex-direction: column; }
+    .dispatch-table-wrap { max-height: 392px; border-bottom: 1px solid var(--border); overflow: auto; }
+    .dispatch-table { min-width: 1060px; }
+    .dispatch-table thead th { position: sticky; top: 0; z-index: 1; }
+
+    .workshop-assignment-table-wrap { max-height: 286px; border-bottom: 1px solid var(--border); overflow: auto; }
+    .workshop-assignment-table { min-width: 1760px; }
+    .workshop-assignment-table thead th { position: sticky; top: 0; z-index: 1; }
+    .workshop-assignment-header { align-items: flex-end; flex-wrap: wrap; }
+
+    .workshop-filter-bar {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(118px, 1fr)) auto;
+      gap: 9px; align-items: end; flex: 1; max-width: 780px;
+    }
+    .workshop-filter-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+    .workshop-filter-field label { color: var(--muted); font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em; }
+
+    .field-input,
+    .workshop-filter-field input, .workshop-filter-field select,
+    .dispatch-filter-field input, .dispatch-filter-field select,
+    .worker-select, .owner-select, .overview-input,
+    .field input, .field select {
+      height: 34px;
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: oklch(0.20 0.012 250);
+      color: var(--fg);
+      padding: 0 10px;
+      transition: border-color .15s ease, background .15s ease;
+    }
+    input::placeholder { color: var(--faint); }
+    .workshop-filter-field input:hover, .dispatch-filter-field input:hover,
+    .overview-input:hover, .field input:hover,
+    select:hover { border-color: var(--border-strong); }
+    .workshop-filter-field input:focus, .dispatch-filter-field input:focus,
+    .overview-input:focus, .field input:focus, select:focus {
+      border-color: var(--accent);
+      background: oklch(0.22 0.012 250);
+      outline: none;
+    }
+
+    .dispatch-filter-bar {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr)) auto;
+      gap: 11px; align-items: end;
+    }
+    .dispatch-filter-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+    .dispatch-filter-field label { color: var(--muted); font-size: 11.5px; font-weight: 500; letter-spacing: 0.02em; }
+    .dispatch-filter-action { min-width: 78px; justify-content: center; }
+
+    .ai-select-col { width: 44px; min-width: 44px; text-align: center; }
+
+    .draft-checkbox {
+      width: 16px; height: 16px;
+      accent-color: var(--accent);
+      vertical-align: middle;
+      cursor: pointer;
+    }
+
+    .worker-select { width: 122px; }
+    .owner-select { width: 130px; }
+
+    .table-pagination {
+      min-height: 48px;
+      padding: 11px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .table-pagination .mono { color: var(--fg); }
+
+    .pager { display: flex; align-items: center; gap: 6px; }
+    .pager button {
+      min-width: 30px; height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface-2);
+      color: var(--muted);
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .pager button:hover { background: var(--surface-hi); color: var(--fg); border-color: var(--border-strong); }
+    .pager button.active {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ---------- Tables ---------- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+    th, td {
+      padding: 12px 11px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    th {
+      background: oklch(0.21 0.013 250);
+      color: var(--muted);
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    tbody tr { transition: background .12s ease; }
+    tbody tr:hover { background: oklch(1 0 0 / 0.03); }
+    tr:last-child td { border-bottom: 0; }
+    /* numeric-ish columns get mono */
+    td.num { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+
+    /* ---------- Tags ---------- */
+    .tag {
+      min-height: 22px;
+      border-radius: 6px;
+      padding: 2px 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid transparent;
+      letter-spacing: 0.01em;
+    }
+    .tag::before {
+      content: ""; width: 6px; height: 6px; border-radius: 50%;
+      background: currentColor; flex: none;
+    }
+    .tag.green  { color: var(--success); background: var(--success-bg); border-color: oklch(0.74 0.14 150 / 0.3); }
+    .tag.amber  { color: var(--warn);    background: var(--warn-bg);    border-color: oklch(0.80 0.13 78 / 0.3); }
+    .tag.red    { color: var(--danger);  background: var(--danger-bg);  border-color: oklch(0.70 0.17 25 / 0.35); }
+    .tag.blue   { color: var(--info);    background: var(--info-bg);    border-color: oklch(0.72 0.11 235 / 0.3); }
+    .tag.gray   { color: var(--muted);   background: oklch(1 0 0 / 0.06); border-color: var(--border); }
+    .tag.purple { color: oklch(0.74 0.13 300); background: oklch(0.74 0.13 300 / 0.14); border-color: oklch(0.74 0.13 300 / 0.3); }
+    .tag.no-dot::before { display: none; }
+
+    .sort-select {
+      height: 32px;
+      border: 1px solid oklch(0.80 0.13 78 / 0.35);
+      border-radius: 6px;
+      background: var(--warn-bg);
+      color: var(--warn);
+      padding: 0 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .sort-select:hover { background: oklch(0.80 0.13 78 / 0.2); }
+
+    /* ---------- Progress ---------- */
+    .progress {
+      width: 130px; height: 8px;
+      border-radius: 999px;
+      background: oklch(1 0 0 / 0.08);
+      overflow: hidden;
+    }
+    .bar { height: 100%; border-radius: inherit; background: var(--info); }
+    .bar.green { background: var(--success); }
+    .bar.amber { background: var(--warn); }
+    .bar.red   { background: var(--danger); }
+    .bar.gray  { background: var(--faint); }
+    .muted { color: var(--muted); font-family: var(--font-mono); font-size: 12px; margin-left: 8px; }
+
+    /* ---------- Risk ---------- */
+    .risk-board { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    .mini-list { display: flex; flex-direction: column; gap: 10px; }
+    .risk-line {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 72px 1fr auto;
+      align-items: center;
+      gap: 12px;
+      background: oklch(0.21 0.013 250);
+    }
+    .risk-line.critical { border-color: oklch(0.70 0.17 25 / 0.4); background: oklch(0.70 0.17 25 / 0.07); }
+    .risk-num {
+      font-family: var(--font-display);
+      font-size: 30px; font-weight: 600; line-height: 1;
+      color: var(--danger);
+      font-feature-settings: "tnum" 1;
+    }
+    .risk-line strong { font-weight: 600; }
+    .flow-note { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 3px; }
+
+    /* ---------- Forms ---------- */
+    .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: 0.01em; }
+
+    .upload-box {
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      background: oklch(1 0 0 / 0.02);
+      min-height: 132px;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; color: var(--muted);
+      line-height: 1.7;
+      transition: border-color .15s, background .15s;
+    }
+    .upload-box:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .upload-box strong { color: var(--fg); }
+
+    .split { display: grid; grid-template-columns: 340px 1fr; gap: 18px; }
+
+    .drawing-preview {
+      height: 430px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, oklch(0.80 0.14 78 / 0.06) 1px, transparent 1px),
+        linear-gradient(oklch(0.80 0.14 78 / 0.06) 1px, transparent 1px),
+        oklch(0.21 0.013 250);
+      background-size: 24px 24px;
+      padding: 18px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 14px;
+    }
+    .drawing-preview > strong { font-family: var(--font-display); font-weight: 600; }
+    .blueprint-shape {
+      border: 1.5px solid var(--accent);
+      background: var(--accent-dim);
+      border-radius: 4px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 18px;
+    }
+    .blueprint-shape div { border: 1px solid oklch(0.80 0.14 78 / 0.5); border-radius: 3px; }
+
+    /* ---------- Overview extras ---------- */
+    .overview-section-label {
+      font-family: var(--font-display);
+      color: var(--fg);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin: 4px 0 -4px;
+      display: flex; align-items: center; gap: 9px;
+    }
+    .overview-section-label::before {
+      content: ""; width: 14px; height: 2px; border-radius: 2px; background: var(--accent);
+    }
+
+    .overview-status-strip {
+      height: 20px; border-radius: 6px; overflow: hidden;
+      display: flex; background: oklch(1 0 0 / 0.06); gap: 2px;
+    }
+    .overview-seg { height: 100%; }
+    .overview-seg.gray  { background: var(--faint); }
+    .overview-seg.blue  { background: var(--info); }
+    .overview-seg.green { background: var(--success); }
+    .overview-seg.red   { background: var(--danger); }
+
+    .overview-legend {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      margin-top: 12px; color: var(--muted); font-size: 12px;
+    }
+    .overview-legend span { display: inline-flex; align-items: center; }
+    .overview-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .overview-dot.gray  { background: var(--faint); }
+    .overview-dot.blue  { background: var(--info); }
+    .overview-dot.green { background: var(--success); }
+    .overview-dot.red   { background: var(--danger); }
+
+    .overview-progress {
+      height: 10px; border-radius: 999px;
+      background: oklch(1 0 0 / 0.08); overflow: hidden; width: 100%;
+    }
+    .overview-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--info); }
+    .overview-progress > span.green { background: var(--success); }
+    .overview-progress > span.amber { background: var(--warn); }
+    .overview-progress > span.red   { background: var(--danger); }
+    .overview-progress > span.gray  { background: var(--faint); }
+
+    .overview-all-orders-grid { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; }
+    .overview-subtle { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .overview-order-title { font-weight: 600; margin-bottom: 4px; }
+
+    .overview-order-list, .overview-process-list { display: flex; flex-direction: column; gap: 10px; }
+    .overview-order-scroll {
+      max-height: 366px; overflow-y: auto; padding-right: 6px;
+      scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent;
+    }
+    .overview-order-scroll::-webkit-scrollbar { width: 8px; }
+    .overview-order-scroll::-webkit-scrollbar-track { background: transparent; }
+    .overview-order-scroll::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+
+    .overview-order-row, .overview-process-card {
+      background: oklch(0.21 0.013 250);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 13px;
+      display: grid; gap: 12px; align-items: center;
+      transition: border-color .12s ease, background .12s ease;
+    }
+    .overview-order-row:hover, .overview-process-card:hover {
+      border-color: var(--border-strong);
+      background: oklch(0.235 0.014 250);
+    }
+    .overview-order-row { grid-template-columns: 190px minmax(0, 1fr) 92px 112px; }
+    .overview-process-card { grid-template-columns: 150px minmax(0, 1fr) 88px 138px; }
+
+    .overview-order-pager {
+      margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; color: var(--muted); font-size: 12px;
+    }
+    .overview-pager-actions { display: flex; align-items: center; gap: 6px; }
+    .overview-pager-btn {
+      min-width: 30px; height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface-2);
+      color: var(--muted);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); cursor: pointer;
+      transition: background .12s, color .12s, border-color .12s;
+    }
+    .overview-pager-btn:hover { background: var(--surface-hi); color: var(--fg); border-color: var(--border-strong); }
+    .overview-pager-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+
+    .overview-big-callout {
+      border: 1px solid oklch(0.70 0.17 25 / 0.4);
+      background: linear-gradient(120deg, oklch(0.70 0.17 25 / 0.1), oklch(0.70 0.17 25 / 0.03));
+      border-radius: var(--radius);
+      padding: 18px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 16px; align-items: center;
+    }
+    .overview-big-number {
+      font-family: var(--font-display);
+      color: var(--danger);
+      font-size: 46px; line-height: 1; font-weight: 700;
+      font-feature-settings: "tnum" 1;
+    }
+    .overview-big-callout strong { font-weight: 600; font-size: 14.5px; }
+
+    .overview-donut-wrap {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: oklch(0.21 0.013 250);
+      padding: 16px;
+      display: grid; grid-template-columns: 142px minmax(0, 1fr);
+      gap: 16px; align-items: center;
+    }
+    .overview-donut {
+      width: 142px; height: 142px; border-radius: 50%;
+      background:
+        conic-gradient(
+          var(--faint) 0 10%,
+          var(--info) 10% 55%,
+          var(--success) 55% 95%,
+          var(--danger) 95% 100%
+        );
+      display: grid; place-items: center;
+      box-shadow: 0 0 0 1px var(--border) inset;
+    }
+    .overview-donut-inner {
+      width: 92px; height: 92px; border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+    }
+    .overview-donut-main {
+      font-family: var(--font-display);
+      font-size: 26px; line-height: 1; font-weight: 600;
+      color: var(--success); font-feature-settings: "tnum" 1;
+    }
+    .overview-donut-label { margin-top: 6px; color: var(--muted); font-size: 12px; }
+    .overview-donut-legend { display: grid; gap: 11px; color: var(--fg); font-size: 13px; }
+    .overview-donut-legend-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .overview-donut-legend-row span { color: var(--muted); display: inline-flex; align-items: center; }
+    .overview-donut-legend-row strong { font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+
+    .overview-filter-panel .panel-body { display: flex; flex-direction: column; gap: 12px; }
+    .overview-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .overview-input { height: 36px; min-width: 190px; width: auto; }
+
+    .overview-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) 350px; gap: 18px; }
+
+    /* ---------- Module page switching ---------- */
+    .module-page { display: none; }
+    .module-page.active { display: flex; flex-direction: column; gap: 18px; animation: fade .22s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .module-page.active { animation: none; }
+      * { transition-duration: .01ms !important; scroll-behavior: auto !important; }
+    }
+
+    /* ---------- Toast / feedback ---------- */
+    .toast-region {
+      position: fixed;
+      right: 24px; bottom: 24px;
+      z-index: 50;
+      display: flex; flex-direction: column; gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      min-width: 260px; max-width: 380px;
+      display: flex; align-items: flex-start; gap: 11px;
+      padding: 13px 15px;
+      border-radius: 9px;
+      background: oklch(0.28 0.015 250);
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow);
+      color: var(--fg);
+      font-size: 13px; line-height: 1.5;
+      animation: toast-in .18s ease;
+    }
+    .toast .t-ico { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+    .toast.success .t-ico { color: var(--success); }
+    .toast.info .t-ico { color: var(--info); }
+    .toast strong { font-weight: 600; display: block; margin-bottom: 2px; }
+    .toast .t-sub { color: var(--muted); font-size: 12px; }
+    @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+
+    /* ---------- Button loading state ---------- */
+    .btn[aria-busy="true"] { pointer-events: none; opacity: .85; }
+    .btn .spin {
+      width: 14px; height: 14px; flex: none;
+      border: 2px solid oklch(0.22 0.02 78 / 0.35);
+      border-top-color: var(--accent-fg);
+      border-radius: 50%;
+      animation: spin .6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .btn .spin { animation-duration: 1.4s; } }
+
+    /* ---------- Empty state ---------- */
+    .empty-row td {
+      padding: 40px 16px !important;
+      text-align: center;
+      color: var(--muted);
+      white-space: normal;
+    }
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .empty-state .e-ico {
+      width: 40px; height: 40px;
+      color: var(--faint);
+    }
+    .empty-state strong { color: var(--fg); font-weight: 600; font-size: 14px; }
+    .empty-state span { font-size: 12.5px; }
+
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 244px minmax(760px, 1fr); }
+      .layout, .split, .overview-all-orders-grid, .overview-detail-grid { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dispatch-filter-bar, .workshop-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .app { grid-template-columns: 76px minmax(640px, 1fr); }
+      .sidebar { padding: 14px 8px; }
+      .brand { padding: 4px 2px 12px; justify-content: center; }
+      .brand-title, .brand-subtitle, .nav-label, .sidebar-foot .who, .sidebar-foot .role { display: none; }
+      .nav button { grid-template-columns: 1fr; justify-items: center; padding: 11px 6px; }
+      .nav button span:nth-child(2), .nav .badge { display: none; }
+      .sidebar-foot { justify-content: center; }
+      .topbar { height: auto; align-items: flex-start; flex-direction: column; padding: 16px; gap: 12px; }
+      .content { padding: 16px; }
+      .metrics, .form-grid, .dispatch-filter-bar, .workshop-filter-bar { grid-template-columns: 1fr; }
+      .risk-line { grid-template-columns: 1fr; }
+      table { min-width: 680px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-od-id="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>
+        </div>
+        <div>
+          <div class="brand-title">生产协同 MES</div>
+          <div class="brand-subtitle">施工图 · 装配入库</div>
+        </div>
+      </div>
+      <div class="nav-label">生产流程</div>
+      <nav class="nav" aria-label="模块导航">
+        <button class="active" data-page-key="overview" data-pages="dashboard" data-od-id="nav-overview" aria-label="总览">
+          <span class="nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg></span>
+          <span>总览</span><span class="badge">3</span>
+        </button>
+        <button data-page-key="drawings" data-pages="orders ai" data-od-id="nav-drawings" aria-label="订单图纸">
+          <span class="nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg></span>
+          <span>订单图纸</span><span class="badge">17</span>
+        </button>
+        <button data-page-key="execution" data-pages="dispatch workshop progress" data-od-id="nav-execution" aria-label="派工执行">
+          <span class="nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg></span>
+          <span>派工执行</span><span class="badge">69</span>
+        </button>
+        <button data-page-key="assembly" data-pages="risk warehouse" data-od-id="nav-assembly" aria-label="风险装配">
+          <span class="nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l9 5v8l-9 5-9-5V8z"/><path d="M12 12l9-5M12 12v10M12 12L3 7"/></svg></span>
+          <span>风险装配</span><span class="badge">8</span>
+        </button>
+        <button data-page-key="master" data-pages="master" data-od-id="nav-master" aria-label="基础资料">
+          <span class="nav-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.17V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3.6 15H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6h.09A1.65 1.65 0 0 0 11 3.09V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 16 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.91 9H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+          <span>基础资料</span><span class="badge">-</span>
+        </button>
+      </nav>
+      <div class="sidebar-foot" data-od-id="sidebar-user">
+        <div class="avatar">生</div>
+        <div>
+          <div class="who">生管中心</div>
+          <div class="role">王生管 · 排产员</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar" data-od-id="topbar">
+        <div>
+          <h1 class="page-title" id="pageTitle">总览</h1>
+          <div class="page-meta" id="pageMeta">全部订单生产完成情况 · 可按订单名称/订单编号筛选查看单订单进度</div>
+        </div>
+        <div class="toolbar">
+          <select class="btn" id="topbarOrderSelect" aria-label="选择订单" style="display:none">
+            <option>ZG-20260829-018</option>
+            <option>ZG-20260829-019</option>
+            <option>ZG-20260828-014</option>
+          </select>
+          <button class="btn ghost" id="topbarSearchButton" style="display:none">筛选</button>
+          <button class="btn primary" id="topbarNewOrderButton" data-od-id="cta-new-order">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            建立订单
+          </button>
+        </div>
+      </header>
+
+      <section class="content">
+        <section class="module-page active" id="dashboard" data-od-id="page-overview">
+          <div class="overview-section-label">全部订单完成情况</div>
+          <div class="metrics">
+            <div class="metric"><div class="metric-label">订单总数</div><div class="metric-value mono">18</div><div class="metric-foot">今日新增 3 单</div></div>
+            <div class="metric"><div class="metric-label"><span class="dot" style="background:var(--faint)"></span>待处理</div><div class="metric-value mono" style="color:var(--muted);">4</div><div class="metric-foot">占比 22%</div></div>
+            <div class="metric"><div class="metric-label"><span class="dot" style="background:var(--info)"></span>处理中</div><div class="metric-value mono" style="color:var(--info);">9</div><div class="metric-foot">占比 50%</div></div>
+            <div class="metric"><div class="metric-label"><span class="dot" style="background:var(--success)"></span>已完成</div><div class="metric-value mono" style="color:var(--success);">3</div><div class="metric-foot">占比 17%</div></div>
+            <div class="metric"><div class="metric-label"><span class="dot" style="background:var(--danger)"></span>存在异常</div><div class="metric-value mono" style="color:var(--danger);">2</div><div class="metric-foot">占比 11%</div></div>
+          </div>
+
+          <div class="overview-all-orders-grid">
+            <div class="panel" data-od-id="overview-status-panel">
+              <div class="panel-header"><h2 class="panel-title">所有订单状态占比</h2><span class="tag blue no-dot">18 个订单</span></div>
+              <div class="panel-body">
+                <div class="overview-status-strip">
+                  <div class="overview-seg gray" style="width:22%"></div>
+                  <div class="overview-seg blue" style="width:50%"></div>
+                  <div class="overview-seg green" style="width:17%"></div>
+                  <div class="overview-seg red" style="width:11%"></div>
+                </div>
+                <div class="overview-legend">
+                  <span><i class="overview-dot gray"></i>待处理 22%</span>
+                  <span><i class="overview-dot blue"></i>处理中 50%</span>
+                  <span><i class="overview-dot green"></i>已完成 17%</span>
+                  <span><i class="overview-dot red"></i>异常 11%</span>
+                </div>
+              </div>
+            </div>
+            <div class="panel" data-od-id="overview-risk-panel">
+              <div class="panel-header"><h2 class="panel-title">全局风险</h2></div>
+              <div class="panel-body">
+                <div class="overview-big-callout">
+                  <div class="overview-big-number">80</div>
+                  <div><strong>ZG-20260829-018 当前只能装配 80 套</strong><div class="overview-subtle">订单计划 100 套，玻璃加工导致缺口 20 套。</div></div>
+                  <span class="tag red">玻璃</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" data-od-id="overview-order-progress">
+            <div class="panel-header"><h2 class="panel-title">每个订单完成情况</h2><select class="sort-select" aria-label="订单排序方式"><option>按完成度排序</option><option>按交付日期排序</option></select></div>
+            <div class="panel-body">
+              <div class="overview-order-scroll" aria-label="按完成度排序的订单列表">
+                <div class="overview-order-list">
+                  <div class="overview-order-row"><div><div class="overview-order-title mono">ZG-20260828-014</div><div class="overview-subtle">展柜 C 款 · 50 套</div></div><div><div class="overview-progress"><span class="green" style="width:100%"></span></div><div class="overview-subtle">完成 100% · 已入库 50 套</div></div><span class="tag green">已完成</span><div class="overview-subtle">已入库</div></div>
+                  <div class="overview-order-row"><div><div class="overview-order-title mono">ZG-20260826-016</div><div class="overview-subtle">展柜 F 款 · 40 套</div></div><div><div class="overview-progress"><span class="green" style="width:92%"></span></div><div class="overview-subtle">完成 92% · 当前可装配 36 套</div></div><span class="tag blue">处理中</span><div class="overview-subtle">装配收尾</div></div>
+                  <div class="overview-order-row"><div><div class="overview-order-title mono">ZG-20260829-018</div><div class="overview-subtle">展柜 A 款 · 100 套</div></div><div><div class="overview-progress"><span class="red" style="width:80%"></span></div><div class="overview-subtle">完成 80% · 当前可装配 80 套</div></div><span class="tag red">异常</span><div class="overview-subtle">玻璃滞后</div></div>
+                  <div class="overview-order-row"><div><div class="overview-order-title mono">ZG-20260825-010</div><div class="overview-subtle">展柜 E 款 · 120 套</div></div><div><div class="overview-progress"><span class="red" style="width:60%"></span></div><div class="overview-subtle">完成 60% · 当前可装配 72 套</div></div><span class="tag red">异常</span><div class="overview-subtle">木作异常</div></div>
+                  <div class="overview-order-row"><div><div class="overview-order-title mono">ZG-20260829-019</div><div class="overview-subtle">展柜 B 款 · 60 套</div></div><div><div class="overview-progress"><span class="blue" style="width:45%"></span></div><div class="overview-subtle">完成 45% · 当前可装配 24 套</div></div><span class="tag blue">处理中</span><div class="overview-subtle">正常推进</div></div>
+                  <div class="overview-order-row"><div><div class="overview-order-title mono">ZG-20260827-012</div><div class="overview-subtle">展柜 G 款 · 90 套</div></div><div><div class="overview-progress"><span class="blue" style="width:38%"></span></div><div class="overview-subtle">完成 38% · 当前可装配 18 套</div></div><span class="tag blue">处理中</span><div class="overview-subtle">油漆等待</div></div>
+                  <div class="overview-order-row"><div><div class="overview-order-title mono">ZG-20260827-011</div><div class="overview-subtle">展柜 D 款 · 80 套</div></div><div><div class="overview-progress"><span class="gray" style="width:20%"></span></div><div class="overview-subtle">完成 20% · 当前可装配 0 套</div></div><span class="tag gray">待处理</span><div class="overview-subtle">待派发</div></div>
+                  <div class="overview-order-row"><div><div class="overview-order-title mono">ZG-20260830-002</div><div class="overview-subtle">展柜 H 款 · 30 套</div></div><div><div class="overview-progress"><span class="gray" style="width:12%"></span></div><div class="overview-subtle">完成 12% · 当前可装配 0 套</div></div><span class="tag gray">待处理</span><div class="overview-subtle">待确认</div></div>
+                </div>
+              </div>
+              <div class="overview-order-pager">
+                <span>共 <b class="mono">18</b> 个订单 · 每页 8 条 · 当前第 1 / 3 页</span>
+                <div class="overview-pager-actions" aria-label="订单分页">
+                  <button class="overview-pager-btn" type="button">‹</button>
+                  <button class="overview-pager-btn active" type="button">1</button>
+                  <button class="overview-pager-btn" type="button">2</button>
+                  <button class="overview-pager-btn" type="button">3</button>
+                  <button class="overview-pager-btn" type="button">›</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="overview-section-label">单个订单筛选与详情</div>
+          <div class="panel overview-filter-panel" data-od-id="overview-filter">
+            <div class="panel-header"><h2 class="panel-title">筛选指定订单</h2></div>
+            <div class="panel-body">
+              <div class="overview-filters">
+                <input class="overview-input mono" value="ZG-20260829-018" aria-label="订单编号">
+                <input class="overview-input" value="展柜 A 款" aria-label="订单名称">
+                <select class="btn"><option>全部状态</option><option>待处理</option><option>处理中</option><option>已完成</option><option>异常</option></select>
+                <select class="btn"><option>全部车间</option><option>五金</option><option>油漆</option><option>木作</option><option>玻璃</option><option>装配</option></select>
+                <button class="btn primary">查询</button>
+                <button class="btn ghost">重置</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="overview-detail-grid">
+            <div class="panel" data-od-id="overview-process">
+              <div class="panel-header"><h2 class="panel-title">选中订单工序进度</h2></div>
+              <div class="panel-body">
+                <div class="overview-process-list">
+                  <div class="overview-process-card"><div><div class="overview-order-title">五金 / 喷粉</div><div class="overview-subtle mono">T-018-001</div></div><div><div class="overview-progress"><span class="green" style="width:100%"></span></div><div class="overview-subtle">100/100 · 合格 100 · 不合格 0</div></div><span class="tag green">已完成</span><div class="overview-subtle">装配预估：不限制</div></div>
+                  <div class="overview-process-card"><div><div class="overview-order-title">油漆 / 面漆</div><div class="overview-subtle mono">T-018-014</div></div><div><div class="overview-progress"><span class="blue" style="width:95%"></span></div><div class="overview-subtle">95/100 · 合格 95 · 不合格 1</div></div><span class="tag blue">处理中</span><div class="overview-subtle">装配预估：影响 5 套</div></div>
+                  <div class="overview-process-card"><div><div class="overview-order-title">木作 / 封边</div><div class="overview-subtle mono">T-018-027</div></div><div><div class="overview-progress"><span class="amber" style="width:90%"></span></div><div class="overview-subtle">90/100 · 合格 90 · 不合格 0</div></div><span class="tag blue">处理中</span><div class="overview-subtle">装配预估：影响 10 套</div></div>
+                  <div class="overview-process-card"><div><div class="overview-order-title">玻璃 / 玻璃加工</div><div class="overview-subtle mono">T-018-036</div></div><div><div class="overview-progress"><span class="red" style="width:80%"></span></div><div class="overview-subtle">80/100 · 合格 80 · 缺材料 2</div></div><span class="tag red">异常</span><div class="overview-subtle">装配预估：影响 20 套</div></div>
+                  <div class="overview-process-card"><div><div class="overview-order-title">装配 / 总装</div><div class="overview-subtle mono">A-018-01</div></div><div><div class="overview-progress"><span class="gray" style="width:0%"></span></div><div class="overview-subtle">0/80 · 等待前序释放</div></div><span class="tag gray">待处理</span><div class="overview-subtle">装配预估：可先排 80 套</div></div>
+                </div>
+              </div>
+            </div>
+            <div class="panel" data-od-id="overview-single-order">
+              <div class="panel-header"><h2 class="panel-title">单订单完成情况</h2><span class="tag amber">生管监控中</span></div>
+              <div class="panel-body">
+                <div class="overview-big-callout"><div class="overview-big-number">80</div><div><strong>当前可装配 80 / 100 套</strong><div class="overview-subtle">瓶颈：玻璃加工，缺口 20 套。</div></div><span class="tag red">瓶颈</span></div>
+                <div style="height:14px"></div>
+                <div class="overview-donut-wrap">
+                  <div class="overview-donut" aria-label="单订单状态占比：待处理10%，处理中45%，已完成40%，异常5%">
+                    <div class="overview-donut-inner">
+                      <div class="overview-donut-main">40%</div>
+                      <div class="overview-donut-label">已完成</div>
+                    </div>
+                  </div>
+                  <div class="overview-donut-legend">
+                    <div class="overview-donut-legend-row"><span><i class="overview-dot gray"></i>待处理</span><strong>10%</strong></div>
+                    <div class="overview-donut-legend-row"><span><i class="overview-dot blue"></i>处理中</span><strong>45%</strong></div>
+                    <div class="overview-donut-legend-row"><span><i class="overview-dot green"></i>已完成</span><strong>40%</strong></div>
+                    <div class="overview-donut-legend-row"><span><i class="overview-dot red"></i>异常</span><strong>5%</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-page" id="orders" data-od-id="page-orders">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">订单建档与施工图上传</h2>
+              <button class="btn primary" data-od-id="cta-ai-parse">提交 AI 拆解</button>
+            </div>
+            <div class="panel-body">
+              <div class="form-grid">
+                <div class="field"><label>订单编号</label><input class="mono" value="ZG-20260829-018"></div>
+                <div class="field"><label>产品编号</label><input class="mono" value="CP-ZG-A01"></div>
+                <div class="field"><label>产品名称</label><input value="展柜 A 款"></div>
+                <div class="field"><label>订单套数</label><input class="mono" value="100"></div>
+                <div class="field"><label>交付日期</label><input class="mono" value="2026-09-05"></div>
+                <div class="field"><label>优先级</label><select><option>加急</option><option>普通</option></select></div>
+              </div>
+              <div style="height:16px"></div>
+              <div class="upload-box">
+                <div>
+                  <strong>上传施工图 PDF / DWG</strong><br>
+                  已放入：ZG-A01-施工图.pdf、ZG-A01-结构图.dwg
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-page" id="ai" data-od-id="page-ai">
+          <div class="split">
+            <div class="drawing-preview" data-od-id="drawing-preview">
+              <strong>施工图预览</strong>
+              <div class="blueprint-shape">
+                <div></div><div></div><div></div><div></div>
+              </div>
+              <span class="tag blue">PDF/DWG 附件归档</span>
+            </div>
+            <div class="panel ai-draft-panel" data-od-id="ai-draft">
+              <div class="panel-header">
+                <h2 class="panel-title">AI 拆解草稿</h2>
+                <div class="toolbar"><button class="btn ghost">预览</button><button class="btn ghost">编辑</button><button class="btn primary">确认并上传派发清单</button></div>
+              </div>
+              <div class="table-wrap ai-draft-table-wrap">
+                <table class="ai-draft-table">
+                  <thead><tr><th class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="全选任务"></th><th>任务编号</th><th>订单编号</th><th>产品编号</th><th>产品名称</th><th>车间</th><th>工序</th><th>零部件</th><th>单套用量</th><th>计划数</th><th>确认状态</th></tr></thead>
+                  <tbody>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-001" checked></td><td class="num">T-018-001</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>五金</td><td>下料</td><td>支撑架</td><td class="num">1</td><td class="num">100</td><td><span class="tag green">已确认</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-006"></td><td class="num">T-018-006</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>五金</td><td>焊接</td><td>底座框</td><td class="num">1</td><td class="num">100</td><td><span class="tag green">已确认</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-010"></td><td class="num">T-018-010</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>五金</td><td>喷粉</td><td>金属脚</td><td class="num">4</td><td class="num">400</td><td><span class="tag amber">待复核</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-014" checked></td><td class="num">T-018-014</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>油漆</td><td>面漆</td><td>侧板</td><td class="num">1</td><td class="num">100</td><td><span class="tag amber">待复核</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-018"></td><td class="num">T-018-018</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>油漆</td><td>底漆</td><td>背板</td><td class="num">1</td><td class="num">100</td><td><span class="tag amber">待复核</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-022"></td><td class="num">T-018-022</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>木作</td><td>开料</td><td>层板</td><td class="num">3</td><td class="num">300</td><td><span class="tag green">已确认</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-027" checked></td><td class="num">T-018-027</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>木作</td><td>封边</td><td>柜体板</td><td class="num">1</td><td class="num">100</td><td><span class="tag green">已确认</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-031"></td><td class="num">T-018-031</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>木作</td><td>打孔</td><td>安装孔位</td><td class="num">6</td><td class="num">600</td><td><span class="tag amber">待复核</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-036"></td><td class="num">T-018-036</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>玻璃</td><td>玻璃加工</td><td>玻璃门</td><td class="num">1</td><td class="num">100</td><td><span class="tag amber">待复核</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-039"></td><td class="num">T-018-039</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>玻璃</td><td>磨边</td><td>玻璃门</td><td class="num">1</td><td class="num">100</td><td><span class="tag amber">待复核</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-043"></td><td class="num">T-018-043</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>装配</td><td>预装</td><td>柜体组件</td><td class="num">1</td><td class="num">100</td><td><span class="tag gray">待生成</span></td></tr>
+                    <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择任务 T-018-047"></td><td class="num">T-018-047</td><td class="num">ZG-20260829-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>装配</td><td>总装</td><td>整套展柜</td><td class="num">1</td><td class="num">100</td><td><span class="tag gray">待生成</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="table-pagination">
+                <span>已选 <b class="mono">3</b> 条 · 共 16 条任务 · 每页 12 条</span>
+                <div class="pager" aria-label="AI 拆解草稿分页">
+                  <button type="button">上一页</button>
+                  <button class="active" type="button">1</button>
+                  <button type="button">2</button>
+                  <button type="button">下一页</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-page" id="dispatch" data-od-id="page-dispatch">
+          <div class="panel dispatch-list-panel">
+            <div class="panel-header">
+              <h2 class="panel-title">派发清单</h2>
+              <button class="btn primary" data-od-id="cta-batch-dispatch">批量派发</button>
+            </div>
+            <div class="dispatch-filter-bar">
+              <div class="dispatch-filter-field"><label>产品名称</label><input value="展柜 A 款" aria-label="按产品名称筛选"></div>
+              <div class="dispatch-filter-field"><label>产品编号</label><input class="mono" value="CP-ZG-A01" aria-label="按产品编号筛选"></div>
+              <div class="dispatch-filter-field"><label>车间类型</label><select aria-label="按车间类型筛选"><option>全部车间</option><option>五金</option><option>油漆</option><option>木作</option><option>玻璃</option><option>装配</option></select></div>
+              <div class="dispatch-filter-field"><label>工序类型</label><select aria-label="按工序类型筛选"><option>全部工序</option><option>下料</option><option>焊接</option><option>喷粉</option><option>面漆</option><option>封边</option><option>玻璃加工</option><option>总装</option></select></div>
+              <button class="btn dispatch-filter-action">筛选</button>
+            </div>
+            <div class="table-wrap dispatch-table-wrap">
+              <table class="dispatch-table">
+                <thead><tr><th class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="全选派发任务"></th><th>任务编号</th><th>产品编号</th><th>产品名称</th><th>车间</th><th>工序</th><th>计划数</th><th>车间负责人</th><th>派发状态</th></tr></thead>
+                <tbody>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-001" checked></td><td class="num">T-018-001</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>五金</td><td>下料</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-001 车间负责人"><option selected>陈队长</option><option>郑队长</option><option>许队长</option></select></td><td><span class="tag green">已派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-006"></td><td class="num">T-018-006</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>五金</td><td>焊接</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-006 车间负责人"><option selected>陈队长</option><option>郑队长</option><option>许队长</option></select></td><td><span class="tag green">已派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-010"></td><td class="num">T-018-010</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>五金</td><td>喷粉</td><td class="num">400</td><td><select class="owner-select" aria-label="T-018-010 车间负责人"><option selected>陈队长</option><option>郑队长</option><option>许队长</option></select></td><td><span class="tag amber">待派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-014" checked></td><td class="num">T-018-014</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>油漆</td><td>面漆</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-014 车间负责人"><option selected>林队长</option><option>周队长</option><option>苏队长</option></select></td><td><span class="tag green">已派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-018"></td><td class="num">T-018-018</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>油漆</td><td>底漆</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-018 车间负责人"><option selected>林队长</option><option>周队长</option><option>苏队长</option></select></td><td><span class="tag amber">待派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-022"></td><td class="num">T-018-022</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>木作</td><td>开料</td><td class="num">300</td><td><select class="owner-select" aria-label="T-018-022 车间负责人"><option>何队长</option><option selected>吴队长</option><option>赖队长</option></select></td><td><span class="tag amber">待派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-027"></td><td class="num">T-018-027</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>木作</td><td>封边</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-027 车间负责人"><option>何队长</option><option selected>吴队长</option><option>赖队长</option></select></td><td><span class="tag amber">待派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-031"></td><td class="num">T-018-031</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>木作</td><td>打孔</td><td class="num">600</td><td><select class="owner-select" aria-label="T-018-031 车间负责人"><option>何队长</option><option selected>吴队长</option><option>赖队长</option></select></td><td><span class="tag amber">待派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-036"></td><td class="num">T-018-036</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>玻璃</td><td>玻璃加工</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-036 车间负责人"><option selected>黄队长</option><option>蔡队长</option><option>庄队长</option></select></td><td><span class="tag amber">待派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-039"></td><td class="num">T-018-039</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>玻璃</td><td>磨边</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-039 车间负责人"><option selected>黄队长</option><option>蔡队长</option><option>庄队长</option></select></td><td><span class="tag amber">待派发</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-043"></td><td class="num">T-018-043</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>装配</td><td>预装</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-043 车间负责人"><option selected>魏队长</option><option>唐队长</option><option>谢队长</option></select></td><td><span class="tag gray">待确认</span></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择派发任务 T-018-047"></td><td class="num">T-018-047</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>装配</td><td>总装</td><td class="num">100</td><td><select class="owner-select" aria-label="T-018-047 车间负责人"><option selected>魏队长</option><option>唐队长</option><option>谢队长</option></select></td><td><span class="tag gray">待确认</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-pagination">
+              <span>已选 <b class="mono">2</b> 条 · 共 16 条任务 · 每页 12 条</span>
+              <div class="pager" aria-label="派发清单分页">
+                <button type="button">上一页</button>
+                <button class="active" type="button">1</button>
+                <button type="button">2</button>
+                <button type="button">下一页</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-page" id="workshop" data-od-id="page-workshop">
+          <div class="panel">
+            <div class="panel-header workshop-assignment-header">
+              <h2 class="panel-title">车间人员分配情况</h2>
+              <div class="workshop-filter-bar" aria-label="车间人员分配筛选">
+                <div class="workshop-filter-field"><label>产品名称</label><input value="展柜 A 款" aria-label="按产品名称筛选人员分配"></div>
+                <div class="workshop-filter-field"><label>产品编号</label><input class="mono" value="CP-ZG-A01" aria-label="按产品编号筛选人员分配"></div>
+                <div class="workshop-filter-field"><label>车间类型</label><select aria-label="按车间类型筛选人员分配"><option>全部车间</option><option selected>玻璃</option><option>五金</option><option>油漆</option><option>木作</option><option>装配</option></select></div>
+                <div class="workshop-filter-field"><label>工序类型</label><select aria-label="按工序类型筛选人员分配"><option>全部工序</option><option>玻璃加工</option><option>磨边</option><option>钢化</option><option>清洗</option><option>面漆</option><option>封边</option></select></div>
+                <button class="btn dispatch-filter-action">筛选</button>
+              </div>
+            </div>
+            <div class="table-wrap workshop-assignment-table-wrap">
+              <table class="workshop-assignment-table">
+                <thead><tr><th class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="全选人员分配任务"></th><th>任务编号</th><th>产品编号</th><th>产品名称</th><th>车间</th><th>工序</th><th>计划数</th><th>实施人员</th><th>完成进度</th><th>分配状态</th><th>生产状态</th><th>操作</th></tr></thead>
+                <tbody>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择人员分配任务 T-018-036" checked></td><td class="num">T-018-036</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>玻璃</td><td>玻璃加工</td><td class="num">100</td><td><select class="worker-select" aria-label="T-018-036 实施人员"><option selected>请选择</option><option>李师傅</option><option>赵师傅</option><option>王师傅</option></select></td><td><div class="progress"><div class="bar gray" style="width:0%"></div></div><span class="muted">0/100</span></td><td><span class="tag amber">待分配</span></td><td><span class="tag gray">待处理</span></td><td><button class="btn">分配人员</button></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择人员分配任务 T-018-037"></td><td class="num">T-018-037</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>玻璃</td><td>磨边</td><td class="num">100</td><td><select class="worker-select" aria-label="T-018-037 实施人员"><option>请选择</option><option>李师傅</option><option selected>赵师傅</option><option>王师傅</option></select></td><td><div class="progress"><div class="bar gray" style="width:0%"></div></div><span class="muted">0/100</span></td><td><span class="tag green">已分配</span></td><td><span class="tag gray">待处理</span></td><td><button class="btn">编辑</button></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择人员分配任务 T-018-038"></td><td class="num">T-018-038</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>玻璃</td><td>钢化</td><td class="num">100</td><td><select class="worker-select" aria-label="T-018-038 实施人员"><option>请选择</option><option selected>李师傅</option><option>赵师傅</option><option>王师傅</option></select></td><td><div class="progress"><div class="bar red" style="width:80%"></div></div><span class="muted">80/100</span></td><td><span class="tag green">已分配</span></td><td><span class="tag blue">处理中</span></td><td><button class="btn">编辑</button></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择人员分配任务 T-018-039"></td><td class="num">T-018-039</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>玻璃</td><td>清洗</td><td class="num">100</td><td><select class="worker-select" aria-label="T-018-039 实施人员"><option>请选择</option><option>李师傅</option><option>赵师傅</option><option selected>王师傅</option></select></td><td><div class="progress"><div class="bar green" style="width:100%"></div></div><span class="muted">100/100</span></td><td><span class="tag green">已分配</span></td><td><span class="tag green">已完成</span></td><td><button class="btn">查看</button></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择人员分配任务 T-018-040"></td><td class="num">T-018-040</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>五金</td><td>下料</td><td class="num">100</td><td><select class="worker-select" aria-label="T-018-040 实施人员"><option>请选择</option><option selected>陈师傅</option><option>郑师傅</option><option>许师傅</option></select></td><td><div class="progress"><div class="bar green" style="width:100%"></div></div><span class="muted">100/100</span></td><td><span class="tag green">已分配</span></td><td><span class="tag green">已完成</span></td><td><button class="btn">查看</button></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择人员分配任务 T-018-041"></td><td class="num">T-018-041</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>油漆</td><td>面漆</td><td class="num">100</td><td><select class="worker-select" aria-label="T-018-041 实施人员"><option>请选择</option><option selected>林师傅</option><option>周师傅</option><option>苏师傅</option></select></td><td><div class="progress"><div class="bar amber" style="width:95%"></div></div><span class="muted">95/100</span></td><td><span class="tag green">已分配</span></td><td><span class="tag blue">处理中</span></td><td><button class="btn">编辑</button></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择人员分配任务 T-018-042"></td><td class="num">T-018-042</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>木作</td><td>封边</td><td class="num">100</td><td><select class="worker-select" aria-label="T-018-042 实施人员"><option>请选择</option><option>何师傅</option><option selected>吴师傅</option><option>赖师傅</option></select></td><td><div class="progress"><div class="bar amber" style="width:90%"></div></div><span class="muted">90/100</span></td><td><span class="tag green">已分配</span></td><td><span class="tag blue">处理中</span></td><td><button class="btn">编辑</button></td></tr>
+                  <tr><td class="ai-select-col"><input class="draft-checkbox" type="checkbox" aria-label="选择人员分配任务 T-018-043"></td><td class="num">T-018-043</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td>装配</td><td>预装</td><td class="num">80</td><td><select class="worker-select" aria-label="T-018-043 实施人员"><option selected>请选择</option><option>魏师傅</option><option>唐师傅</option><option>谢师傅</option></select></td><td><div class="progress"><div class="bar gray" style="width:0%"></div></div><span class="muted">0/80</span></td><td><span class="tag amber">待分配</span></td><td><span class="tag gray">待处理</span></td><td><button class="btn">分配人员</button></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-pagination">
+              <span>已选 <b class="mono">1</b> 条 · 共 18 条任务 · 每页 8 条</span>
+              <div class="pager" aria-label="车间人员分配分页">
+                <button type="button">上一页</button>
+                <button class="active" type="button">1</button>
+                <button type="button">2</button>
+                <button type="button">3</button>
+                <button type="button">下一页</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-page" id="progress" data-od-id="page-progress">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">车间生产进度</h2>
+              <div class="toolbar"><button class="btn ghost">五金</button><button class="btn ghost">油漆</button><button class="btn ghost">木作</button><button class="btn primary">玻璃</button></div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>车间</th><th>任务编号</th><th>工序</th><th>实际分配人</th><th>计划数</th><th>完成数</th><th>合格数</th><th>不合格数</th><th>生产状态</th></tr></thead>
+                <tbody>
+                  <tr><td>玻璃</td><td class="num">T-018-036</td><td>玻璃加工</td><td>李师傅</td><td class="num">100</td><td class="num">80</td><td class="num">80</td><td class="num">0</td><td><span class="tag blue">处理中</span></td></tr>
+                  <tr><td>玻璃</td><td class="num">T-018-037</td><td>磨边</td><td>赵师傅</td><td class="num">100</td><td class="num">70</td><td class="num">69</td><td class="num">1</td><td><span class="tag red">异常锁定</span></td></tr>
+                  <tr><td>玻璃</td><td class="num">T-018-038</td><td>钢化</td><td>王师傅</td><td class="num">100</td><td class="num">80</td><td class="num">80</td><td class="num">0</td><td><span class="tag blue">处理中</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-page" id="risk" data-od-id="page-risk">
+          <div class="layout">
+            <div class="panel">
+              <div class="panel-header">
+                <h2 class="panel-title">成套能力计算</h2>
+                <span class="tag red">瓶颈定位</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>关键零部件</th><th>所属车间</th><th>单套用量</th><th>合格产出</th><th>折算套量</th><th>判断</th></tr></thead>
+                  <tbody>
+                    <tr><td>五金支撑架</td><td>五金</td><td class="num">1</td><td class="num">100</td><td class="num">100</td><td><span class="tag green">充足</span></td></tr>
+                    <tr><td>油漆侧板</td><td>油漆</td><td class="num">1</td><td class="num">95</td><td class="num">95</td><td><span class="tag amber">轻微滞后</span></td></tr>
+                    <tr><td>木作柜体</td><td>木作</td><td class="num">1</td><td class="num">90</td><td class="num">90</td><td><span class="tag amber">滞后</span></td></tr>
+                    <tr><td>玻璃门</td><td>玻璃</td><td class="num">1</td><td class="num">80</td><td class="num">80</td><td><span class="tag red">瓶颈</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-header"><h2 class="panel-title">调整建议</h2></div>
+              <div class="panel-body">
+                <div class="mini-list">
+                  <div class="risk-line critical"><div class="risk-num">20</div><div><strong>装配缺口</strong><div class="flow-note">需补齐玻璃门 20 套量</div></div><span class="tag red">高</span></div>
+                  <div class="risk-line"><div class="risk-num" style="color:var(--warn)">10</div><div><strong>木作风险</strong><div class="flow-note">封边再补 10 套量可解除二级瓶颈</div></div><span class="tag amber">中</span></div>
+                  <div class="risk-line"><div class="risk-num" style="color:var(--success)">0</div><div><strong>五金充足</strong><div class="flow-note">可暂停同单五金后续加班</div></div><span class="tag green">低</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-page" id="warehouse" data-od-id="page-warehouse">
+          <div class="panel">
+            <div class="panel-header">
+              <h2 class="panel-title">装配质检与包装入库</h2>
+              <button class="btn primary" data-od-id="cta-warehouse-slip">生成入库单</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>装配批次</th><th>产品编号</th><th>产品名称</th><th>可装配套数</th><th>已装配</th><th>质检状态</th><th>入库状态</th></tr></thead>
+                <tbody>
+                  <tr><td class="num">A-018-01</td><td class="num">CP-ZG-A01</td><td>展柜 A 款</td><td class="num">80</td><td class="num">0</td><td><span class="tag gray">待质检</span></td><td><span class="tag gray">待入库</span></td></tr>
+                  <tr><td class="num">A-017-04</td><td class="num">CP-ZG-B02</td><td>展柜 B 款</td><td class="num">50</td><td class="num">50</td><td><span class="tag green">已通过</span></td><td><span class="tag green">已入库</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="module-page" id="master" data-od-id="page-master">
+          <div class="panel">
+            <div class="panel-header"><h2 class="panel-title">基础资料</h2></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>资料类型</th><th>示例</th><th>用途</th><th>维护角色</th></tr></thead>
+                <tbody>
+                  <tr><td>车间</td><td>五金、油漆、木作、玻璃、装配</td><td>任务归属与进度统计</td><td>管理员</td></tr>
+                  <tr><td>工序</td><td>下料、焊工、面漆、封边、玻璃加工</td><td>AI 拆解和派工</td><td>生管</td></tr>
+                  <tr><td>人员</td><td>生管、车间队长、工人</td><td>权限和任务分配</td><td>管理员</td></tr>
+                  <tr><td>产品/零件</td><td>产品编号、产品名称、单套用量</td><td>成套能力计算</td><td>生管</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast-region" id="toastRegion" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    const titles = {
+      overview: ["总览", "全部订单生产完成情况 · 可按订单名称/订单编号筛选查看单订单进度"],
+      drawings: ["订单图纸", "订单建档、PDF/DWG 上传、AI 拆解草稿与生管确认"],
+      execution: ["派工执行", "生管派发到车间队长，队长分配人员，并跟踪生产进度"],
+      assembly: ["风险装配", "成套能力预警、瓶颈定位、装配质检与包装入库"],
+      master: ["基础资料", "维护车间、工序、人员、产品和零部件资料"]
+    };
+
+    const STORAGE_KEY = "mes-graphite-active-page";
+
+    function activatePage(pageKey, persist) {
+      const button = document.querySelector('.nav button[data-page-key="' + pageKey + '"]');
+      if (!button) return;
+      const pages = button.dataset.pages.split(" ");
+      document.querySelectorAll(".nav button").forEach((item) => {
+        item.classList.remove("active");
+        item.removeAttribute("aria-current");
+      });
+      document.querySelectorAll(".module-page").forEach((item) => item.classList.remove("active"));
+      button.classList.add("active");
+      button.setAttribute("aria-current", "page");
+      pages.forEach((page) => document.getElementById(page).classList.add("active"));
+      document.getElementById("pageTitle").textContent = titles[pageKey][0];
+      document.getElementById("pageMeta").textContent = titles[pageKey][1];
+
+      const topbarOrderSelect = document.getElementById("topbarOrderSelect");
+      const topbarSearchButton = document.getElementById("topbarSearchButton");
+      const topbarNewOrderButton = document.getElementById("topbarNewOrderButton");
+      const isOverview = pageKey === "overview";
+      const isDrawings = pageKey === "drawings";
+      const isExecution = pageKey === "execution";
+      topbarOrderSelect.style.display = isOverview || isDrawings ? "none" : "inline-flex";
+      topbarSearchButton.style.display = isOverview || isDrawings ? "none" : "inline-flex";
+      topbarSearchButton.textContent = isExecution ? "搜索" : "筛选";
+      topbarNewOrderButton.style.display = isExecution || isDrawings ? "none" : "inline-flex";
+      topbarNewOrderButton.textContent = isOverview ? "建立订单" : "新建订单";
+
+      if (persist) {
+        try { localStorage.setItem(STORAGE_KEY, pageKey); } catch (e) {}
+      }
+    }
+
+    document.querySelectorAll(".nav button").forEach((button) => {
+      button.addEventListener("click", () => activatePage(button.dataset.pageKey, true));
+    });
+
+    let saved = "overview";
+    try { saved = localStorage.getItem(STORAGE_KEY) || "overview"; } catch (e) {}
+    activatePage(saved, false);
+
+    /* ---------- Feedback: toast ---------- */
+    const ICONS = {
+      success: '<svg class="t-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+      info: '<svg class="t-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
+    };
+    const toastRegion = document.getElementById("toastRegion");
+    function toast(title, sub, kind) {
+      kind = kind || "success";
+      const el = document.createElement("div");
+      el.className = "toast " + kind;
+      el.innerHTML = ICONS[kind] + '<div><strong>' + title + '</strong>' + (sub ? '<span class="t-sub">' + sub + '</span>' : '') + '</div>';
+      toastRegion.appendChild(el);
+      setTimeout(() => { el.style.opacity = "0"; el.style.transition = "opacity .25s ease"; }, 3200);
+      setTimeout(() => el.remove(), 3500);
+    }
+
+    /* ---------- Feedback: async CTA with loading → success ---------- */
+    function withLoading(btn, doneTitle, doneSub) {
+      if (btn.getAttribute("aria-busy") === "true") return;
+      const original = btn.innerHTML;
+      btn.setAttribute("aria-busy", "true");
+      btn.innerHTML = '<span class="spin" aria-hidden="true"></span>处理中…';
+      setTimeout(() => {
+        btn.removeAttribute("aria-busy");
+        btn.innerHTML = original;
+        toast(doneTitle, doneSub, "success");
+      }, 900);
+    }
+
+    const ctaMap = {
+      "cta-batch-dispatch": ["已提交批量派发", "2 条任务已下发至车间队长"],
+      "cta-warehouse-slip": ["入库单已生成", "A-018-01 · 展柜 A 款 · 待质检 80 套"],
+      "cta-ai-parse": ["已提交 AI 拆解", "解析完成后将进入拆解草稿"],
+      "cta-new-order": ["订单建档已打开", "填写编号、套数与交付日期后提交"]
+    };
+    Object.keys(ctaMap).forEach((id) => {
+      const btn = document.querySelector('[data-od-id="' + id + '"]');
+      if (btn) btn.addEventListener("click", () => withLoading(btn, ctaMap[id][0], ctaMap[id][1]));
+    });
+
+    /* ---------- Feedback: filter → empty-state demo ---------- */
+    const EMPTY_ICON = '<svg class="e-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>';
+    function bindFilter(actionSelector, tableSelector) {
+      const btn = document.querySelector(actionSelector);
+      const table = document.querySelector(tableSelector);
+      if (!btn || !table) return;
+      const tbody = table.querySelector("tbody");
+      const colCount = table.querySelectorAll("thead th").length;
+      const original = tbody.innerHTML;
+      let empty = false;
+      btn.addEventListener("click", () => {
+        empty = !empty; // 演示：首次筛选模拟无结果，再次点击恢复
+        if (empty) {
+          tbody.innerHTML = '<tr class="empty-row"><td colspan="' + colCount + '"><div class="empty-state">' + EMPTY_ICON + '<strong>没有符合条件的任务</strong><span>请调整车间、工序或产品筛选后重试</span></div></td></tr>';
+          toast("筛选完成", "当前条件下暂无匹配任务", "info");
+        } else {
+          tbody.innerHTML = original;
+          toast("已重置筛选", "显示全部任务", "info");
+        }
+      });
+    }
+    bindFilter('#dispatch .dispatch-filter-action', '.dispatch-table');
+    bindFilter('#workshop .dispatch-filter-action', '.workshop-assignment-table');
+  </script>
+</body>
+</html>
